@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Chart Viewer</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        #stockInput { width: 60%; padding: 10px; margin: 10px; }
+        button { padding: 10px; cursor: pointer; }
+        #chartContainer { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 20px; }
+        .chart { width: 400px; height: 300px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+    <h1>Stock Chart Viewer</h1>
+    <input type="text" id="stockInput" placeholder="Enter stock symbols (comma separated)">
+    <button onclick="loadCharts()">Load Charts</button>
+    <div id="chartContainer"></div>
+
+    <script>
+        function loadCharts() {
+            const input = document.getElementById('stockInput').value;
+            const stocks = input.split(',').map(s => s.trim().toUpperCase()).filter(s => s);
+            const container = document.getElementById('chartContainer');
+            container.innerHTML = '';
+            
+            stocks.forEach(stock => {
+                const img = document.createElement('img');
+                img.src = `https://charts2-node.finviz.com/chart.ashx?cs=l&t=${stock}&tf=d&s=linear&ct=candle_stick&o[0][ot]=sma&o[0][op]=20&o[0][oc]=FF8F33C6&o[1][ot]=sma&o[1][op]=50&o[1][oc]=DCB3326D&o[2][ot]=sma&o[2][op]=600&o[2][oc]=DC32B363&o[3][ot]=patterns&o[3][op]=&o[3][oc]=000`;
+                img.alt = `Stock Chart for ${stock}`;
+                img.className = 'chart';
+                container.appendChild(img);
+            });
+        }
+    </script>
+</body>
+</html>
