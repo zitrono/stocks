@@ -9,30 +9,55 @@
         #stockInput { width: 60%; padding: 10px; margin: 10px; }
         button { padding: 10px; cursor: pointer; }
         #chartContainer { display: flex; flex-direction: column; align-items: center; gap: 5px; margin-top: 20px; }
-        .chart { display: block; }
+        .chart { display: block; cursor: pointer; }
     </style>
 </head>
 <body>
     <h1>Stock Chart Viewer</h1>
     <input type="text" id="stockInput" placeholder="Enter stock symbols (comma separated)">
-    <button onclick="loadCharts()">Load Charts</button>
+    <button onclick="updateURL()">Update Charts</button>
     <div id="chartContainer"></div>
 
     <script>
-        function loadCharts() {
+        function getStocksFromURL() {
+            const query = window.location.search.substring(1);
+            return query ? query.split(',').map(s => s.trim().toUpperCase()) : [];
+        }
+
+        function updateURL() {
             const input = document.getElementById('stockInput').value;
             const stocks = input.split(',').map(s => s.trim().toUpperCase()).filter(s => s);
+            if (stocks.length > 0) {
+                window.history.pushState({}, '', '?' + stocks.join(','));
+                loadCharts(stocks);
+            }
+        }
+
+        function loadCharts(stocks) {
             const container = document.getElementById('chartContainer');
             container.innerHTML = '';
             
             stocks.forEach(stock => {
+                const link = document.createElement('a');
+                link.href = `https://finviz.com/quote.ashx?t=${stock}&p=d`;
+                link.target = "_blank";
+                
                 const img = document.createElement('img');
                 img.src = `https://charts2-node.finviz.com/chart.ashx?cs=l&t=${stock}&tf=d&s=linear&ct=candle_stick&o[0][ot]=sma&o[0][op]=20&o[0][oc]=FF8F33C6&o[1][ot]=sma&o[1][op]=50&o[1][oc]=DCB3326D&o[2][ot]=sma&o[2][op]=600&o[2][oc]=DC32B363&o[3][ot]=patterns&o[3][op]=&o[3][oc]=000`;
                 img.alt = `Stock Chart for ${stock}`;
                 img.className = 'chart';
-                container.appendChild(img);
+                
+                link.appendChild(img);
+                container.appendChild(link);
             });
         }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const stocks = getStocksFromURL();
+            if (stocks.length > 0) {
+                loadCharts(stocks);
+            }
+        });
     </script>
 </body>
 </html>
