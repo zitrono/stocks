@@ -55,6 +55,7 @@
         document.addEventListener("DOMContentLoaded", () => {
             const stocks = getStocksFromURL();
             if (stocks.length > 0) {
+                document.getElementById('stockInput').value = stocks.join(', ');
                 loadCharts(stocks);
             }
         });
