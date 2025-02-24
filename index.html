@@ -8,7 +8,7 @@
         body { font-family: Arial, sans-serif; text-align: center; }
         #stockInput { width: 60%; padding: 10px; margin: 10px; }
         button { padding: 10px; cursor: pointer; }
-        #chartContainer { display: flex; flex-direction: column; align-items: center; gap: 5px; margin-top: 20px; }
+        #chartContainer { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 20px; }
         .chart { display: block; cursor: pointer; }
     </style>
 </head>
@@ -19,6 +19,16 @@
     <div id="chartContainer"></div>
 
     <script>
+        async function getCompanyName(symbol) {
+            try {
+                const response = await fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${symbol}&token=YOUR_API_KEY`);
+                const data = await response.json();
+                return data.name || symbol;
+            } catch (error) {
+                return symbol;
+            }
+        }
+
         function getStocksFromURL() {
             const query = window.location.search.substring(1);
             return query ? query.split(',').map(s => s.trim().toUpperCase()) : [];
@@ -33,11 +43,16 @@
             }
         }
 
-        function loadCharts(stocks) {
+        async function loadCharts(stocks) {
             const container = document.getElementById('chartContainer');
             container.innerHTML = '';
             
-            stocks.forEach(stock => {
+            for (const stock of stocks) {
+                const companyName = await getCompanyName(stock);
+                const title = document.createElement('h3');
+                title.innerText = companyName;
+                container.appendChild(title);
+                
                 const link = document.createElement('a');
                 link.href = `https://finviz.com/quote.ashx?t=${stock}&p=d`;
                 link.target = "_blank";
@@ -49,14 +64,14 @@
                 
                 link.appendChild(img);
                 container.appendChild(link);
-            });
+            }
         }
 
-        document.addEventListener("DOMContentLoaded", () => {
+        document.addEventListener("DOMContentLoaded", async () => {
             const stocks = getStocksFromURL();
             if (stocks.length > 0) {
                 document.getElementById('stockInput').value = stocks.join(', ');
-                loadCharts(stocks);
+                await loadCharts(stocks);
             }
         });
     </script>
