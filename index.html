@@ -77,31 +77,36 @@
                     const header = document.createElement('h2');
                     header.innerText = stock.substring(1).trim();
                     container.appendChild(header);
-                } else {
-                    const companyName = await fetchCompanyName(stock);
-                    const preMarketChange = await fetchPreMarketChange(stock);
-
-                    const title = document.createElement('h3');
-                    title.innerText = companyName;
-                    container.appendChild(title);
-                    
-                    const chartContainer = document.createElement('div');
-                    chartContainer.className = 'chart-container';
-
-                    const link = document.createElement('a');
-                    link.href = `https://finviz.com/quote.ashx?t=${stock}&p=d`;
-                    link.target = "_blank";
-                    
-                    const img = document.createElement('img');
-                    img.src = `https://charts2-node.finviz.com/chart.ashx?cs=l&t=${stock}&tf=d&s=linear&ct=candle_stick&o[0][ot]=sma&o[0][op]=20&o[0][oc]=FF8F33C6&o[1][ot]=sma&o[1][op]=50&o[1][oc]=DCB3326D&o[2][ot]=sma&o[2][op]=600&o[2][oc]=DC32B363&o[3][ot]=patterns&o[3][op]=&o[3][oc]=000`;
-                    img.alt = `Stock Chart for ${stock}`;
-                    img.className = 'chart';
-                    
-                    link.appendChild(img);
-                    chartContainer.appendChild(link);
-                    chartContainer.innerHTML += preMarketChange;
-                    container.appendChild(chartContainer);
+                    continue;
                 }
+                
+                const companyName = await fetchCompanyName(stock);
+                const preMarketChange = await fetchPreMarketChange(stock);
+                
+                const title = document.createElement('h3');
+                title.innerText = companyName;
+                container.appendChild(title);
+                
+                const chartContainer = document.createElement('div');
+                chartContainer.className = 'chart-container';
+                
+                const link = document.createElement('a');
+                link.href = `https://finviz.com/quote.ashx?t=${stock}&p=d`;
+                link.target = "_blank";
+                
+                const img = document.createElement('img');
+                img.src = `https://charts2-node.finviz.com/chart.ashx?cs=l&t=${stock}&tf=d&s=linear&ct=candle_stick&o[0][ot]=sma&o[0][op]=20&o[0][oc]=FF8F33C6&o[1][ot]=sma&o[1][op]=50&o[1][oc]=DCB3326D&o[2][ot]=sma&o[2][op]=600&o[2][oc]=DC32B363&o[3][ot]=patterns&o[3][op]=&o[3][oc]=000`;
+                img.alt = `Stock Chart for ${stock}`;
+                img.className = 'chart';
+                
+                link.appendChild(img);
+                chartContainer.appendChild(link);
+                
+                const changeElement = document.createElement('div');
+                changeElement.innerHTML = preMarketChange;
+                chartContainer.appendChild(changeElement);
+                
+                container.appendChild(chartContainer);
             }
         }
 
