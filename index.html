@@ -45,16 +45,29 @@
             return "";
         }
 
-        // Function to fetch company name from Finnhub API
+        // Function to fetch company name from APIs
         async function fetchCompanyName(symbol) {
             try {
-                const response = await fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${symbol}&token=${FINNHUB_API_KEY}`);
-                const data = await response.json();
-                return data.name || symbol;
+                let response = await fetch(`https://financialmodelingprep.com/api/v3/profile/${symbol}?apikey=${FMP_API_KEY}`);
+                let data = await response.json();
+                if (data && data.length > 0 && data[0].companyName) {
+                    return data[0].companyName;
+                }
             } catch (error) {
-                console.error(`Error fetching data for ${symbol}:`, error);
-                return symbol;
+                console.error(`FMP API error for ${symbol}:`, error);
             }
+            
+            try {
+                let response = await fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${symbol}&token=${FINNHUB_API_KEY}`);
+                let data = await response.json();
+                if (data && data.name) {
+                    return data.name;
+                }
+            } catch (error) {
+                console.error(`Finnhub API error for ${symbol}:`, error);
+            }
+            
+            return symbol; // Default to ticker if APIs fail
         }
 
         // Function to load charts based on stock symbols
