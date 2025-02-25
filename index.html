@@ -9,11 +9,7 @@
         #stockInput { width: 60%; padding: 10px; margin: 10px; }
         button { padding: 10px; cursor: pointer; }
         #chartContainer { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 20px; }
-        .chart-container { display: flex; align-items: center; justify-content: space-between; width: 60%; }
         .chart { display: block; cursor: pointer; }
-        .change { font-size: 1.2em; font-weight: bold; margin-left: 10px; }
-        .green { color: green; }
-        .red { color: red; }
     </style>
 </head>
 <body>
@@ -28,50 +24,25 @@
         const FINNHUB_API_KEY = 'cuu664pr01qv6ijm0140cuu664pr01qv6ijm014g';
         const FMP_API_KEY = 'WDNbcPeFae0D9GaCx4syMsjAt2fKO3Hu';
 
-        async function fetchCompanyName(symbol) {
-            try {
-                let response = await fetch(`https://financialmodelingprep.com/api/v3/profile/${symbol}?apikey=${FMP_API_KEY}`);
-                let data = await response.json();
-                if (data && data.length > 0 && data[0].companyName) {
-                    return data[0].companyName;
+        function getStocksFromCookie() {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                let [name, value] = cookie.split('=');
+                if (name.trim() === 'savedStocks') {
+                    return value ? value.split(',') : [];
                 }
-            } catch (error) {
-                console.error(`FMP API error for ${symbol}:`, error);
             }
-            
-            try {
-                let response = await fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${symbol}&token=${FINNHUB_API_KEY}`);
-                let data = await response.json();
-                if (data && data.name) {
-                    return data.name;
-                }
-            } catch (error) {
-                console.error(`Finnhub API error for ${symbol}:`, error);
-            }
-            
-            return symbol;
+            return [];
         }
 
-        async function fetchPreMarketChange(symbol) {
-            try {
-                let response = await fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`);
-                let data = await response.json();
-                if (data && data.dp !== undefined) {
-                    let change = data.d;
-                    let percentChange = data.dp;
-                    let changeClass = change >= 0 ? 'green' : 'red';
-                    return `<span class="change ${changeClass}"> ${change.toFixed(2)} (${percentChange.toFixed(2)}%) </span>`;
-                }
-            } catch (error) {
-                console.error(`Pre-market price fetch error for ${symbol}:`, error);
-            }
-            return '';
+        function setStocksToCookie(stocks) {
+            document.cookie = `savedStocks=${stocks.join(',')};path=/;max-age=${30 * 24 * 60 * 60}`;
         }
 
         function updateCharts() {
             const input = document.getElementById('stockInput').value;
             const stocks = input.split(',').map(s => s.trim().toUpperCase()).filter(s => s);
-            setCookie('savedStocks', stocks.join(','), 30);
+            setStocksToCookie(stocks);
             loadCharts(stocks);
         }
 
@@ -87,13 +58,6 @@
                     continue;
                 }
                 
-                const companyName = await fetchCompanyName(stock);
-                const preMarketChange = await fetchPreMarketChange(stock);
-                
-                const title = document.createElement('h3');
-                title.innerText = companyName;
-                container.appendChild(title);
-                
                 const link = document.createElement('a');
                 link.href = `https://finviz.com/quote.ashx?t=${stock}&p=d`;
                 link.target = "_blank";
@@ -103,16 +67,8 @@
                 img.alt = `Stock Chart for ${stock}`;
                 img.className = 'chart';
                 
-                const chartContainer = document.createElement('div');
-                chartContainer.className = 'chart-container';
                 link.appendChild(img);
-                chartContainer.appendChild(link);
-                
-                const changeElement = document.createElement('div');
-                changeElement.innerHTML = preMarketChange;
-                chartContainer.appendChild(changeElement);
-                
-                container.appendChild(chartContainer);
+                container.appendChild(link);
             }
         }
 
@@ -122,11 +78,11 @@
             }
         });
 
-        document.addEventListener("DOMContentLoaded", async () => {
-            const savedStocks = getCookie('savedStocks');
-            if (savedStocks) {
-                document.getElementById('stockInput').value = savedStocks;
-                await loadCharts(savedStocks.split(','));
+        document.addEventListener("DOMContentLoaded", () => {
+            const savedStocks = getStocksFromCookie();
+            if (savedStocks.length > 0) {
+                document.getElementById('stockInput').value = savedStocks.join(', ');
+                loadCharts(savedStocks);
             }
         });
     </script>
