@@ -1,303 +1,126 @@
-<script>
-    // Version: 1.2.2 - Fix company names and pre-market prices
-    // IMPORTANT: Always increment the version number and update the version name when making changes.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Chart Viewer</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        #stockInput { width: 60%; padding: 10px; margin: 10px; }
+        button { padding: 10px; cursor: pointer; }
+        #chartContainer { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 20px; }
+        .chart-container { display: flex; align-items: center; justify-content: space-between; width: 60%; }
+        .chart { display: block; cursor: pointer; }
+        .change { font-size: 1.2em; font-weight: bold; margin-left: 10px; }
+        .green { color: green; }
+        .red { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Stock Chart Viewer</h1>
+    <h2>Version 1.2.3 - Fix all display issues</h2> <!-- Always increment version number and update version name -->
+    <input type="text" id="stockInput" placeholder="Enter stock symbols (comma separated)">
+    <button onclick="updateCharts()">Update Charts</button>
+    <div id="chartContainer"></div>
 
-    const FINNHUB_API_KEY = 'cuu664pr01qv6ijm0140cuu664pr01qv6ijm014g';
-    const FMP_API_KEY = 'WDNbcPeFae0D9GaCx4syMsjAt2fKO3Hu';
-
-    async function fetchCompanyName(symbol) {
-        try {
-            let response = await fetch(`https://financialmodelingprep.com/api/v3/profile/${symbol}?apikey=${FMP_API_KEY}`);
-            let data = await response.json();
-            if (data && data.length > 0 && data[0].companyName) {
-                return data[0].companyName;
+    <script>
+        // Version: 1.2.3 - Fix all display issues
+        // IMPORTANT: Always increment the version number and update the version name when making changes.
+        
+        const FINNHUB_API_KEY = 'cuu664pr01qv6ijm0140cuu664pr01qv6ijm014g';
+        const FMP_API_KEY = 'WDNbcPeFae0D9GaCx4syMsjAt2fKO3Hu';
+        
+        async function fetchCompanyName(symbol) {
+            try {
+                let response = await fetch(`https://financialmodelingprep.com/api/v3/profile/${symbol}?apikey=${FMP_API_KEY}`);
+                let data = await response.json();
+                if (data && data.length > 0 && data[0].companyName) {
+                    return data[0].companyName;
+                }
+            } catch (error) {
+                console.error(`FMP API error for ${symbol}:`, error);
             }
-        } catch (error) {
-            console.error(`FMP API error for ${symbol}:`, error);
+            return symbol;
         }
         
-        try {
-            let response = await fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${symbol}&token=${FINNHUB_API_KEY}`);
-            let data = await response.json();
-            if (data && data.name) {
-                return data.name;
+        async function fetchPreMarketData(symbol) {
+            try {
+                let response = await fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`);
+                let data = await response.json();
+                if (data && data.dp !== undefined) {
+                    let change = data.d;
+                    let percentChange = data.dp;
+                    let currentPrice = data.c;
+                    let changeClass = change >= 0 ? 'green' : 'red';
+                    return `<span class='change ${changeClass}'>${currentPrice.toFixed(2)} (${change.toFixed(2)}, ${percentChange.toFixed(2)}%)</span>`;
+                }
+            } catch (error) {
+                console.error(`Pre-market price fetch error for ${symbol}:`, error);
             }
-        } catch (error) {
-            console.error(`Finnhub API error for ${symbol}:`, error);
-        }
-        return symbol;
-    }
-
-    async function fetchPreMarketData(symbol) {
-        try {
-            let response = await fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`);
-            let data = await response.json();
-            if (data && data.dp !== undefined) {
-                let change = data.d;
-                let percentChange = data.dp;
-                let currentPrice = data.c;
-                let changeClass = change >= 0 ? 'green' : 'red';
-                return `<span class='change ${changeClass}'>${currentPrice.toFixed(2)} (${change.toFixed(2)}, ${percentChange.toFixed(2)}%)</span>`;
-            }
-        } catch (error) {
-            console.error(`Pre-market price fetch error for ${symbol}:`, error);
-        }
-        return "<span class='change'>N/A</span>";
-    }
-
-    async function loadCharts(stocks) {
-        const container = document.getElementById('chartContainer');
-        container.innerHTML = '';
-        
-        for (const stock of stocks) {
-            if (stock.startsWith('*')) {
-                const header = document.createElement('h2');
-                header.innerText = stock.substring(1).trim();
-                container.appendChild(header);
-                continue;
-            }
-            
-            const companyName = await fetchCompanyName(stock);
-            const preMarketData = await fetchPreMarketData(stock);
-            
-            const title = document.createElement('h3');
-            title.innerText = companyName;
-            container.appendChild(title);
-            
-            const chartContainer = document.createElement('div');
-            chartContainer.style.display = 'flex';
-            chartContainer.style.alignItems = 'center';
-            chartContainer.style.justifyContent = 'space-between';
-            chartContainer.style.width = '60%';
-            
-            const link = document.createElement('a');
-            link.href = `https://finviz.com/quote.ashx?t=${stock}&p=d`;
-            link.target = "_blank";
-            
-            const img = document.createElement('img');
-            img.src = `https://charts2-node.finviz.com/chart.ashx?cs=l&t=${stock}&tf=d&s=linear&ct=candle_stick`;
-            img.alt = `Stock Chart for ${stock}`;
-            img.className = 'chart';
-            
-            link.appendChild(img);
-            chartContainer.appendChild(link);
-            
-            const preMarketElement = document.createElement('div');
-            preMarketElement.innerHTML = preMarketData;
-            chartContainer.appendChild(preMarketElement);
-            
-            container.appendChild(chartContainer);
-        }
-    }
-
-    function getStocksFromCookie() {
-        const cookies = document.cookie.split(';');
-        for (let cookie of cookies) {
-            let [name, value] = cookie.split('=');
-            if (name.trim() === 'savedStocks') {
-                return value ? value.split(',') : [];
-            }
-        }
-        return [];
-    }
-
-    function setStocksToCookie(stocks) {
-        document.cookie = `savedStocks=${stocks.join(',')};path=/;max-age=${30 * 24 * 60 * 60}`;
-    }
-
-    function updateCharts() {
-        const input = document.getElementById('stockInput').value;
-        const stocks = input.split(',').map(s => s.trim().toUpperCase()).filter(s => s);
-        setStocksToCookie(stocks);
-        loadCharts(stocks);
-    }
-
-    document.getElementById('stockInput').addEventListener('keydown', function(event) {
-        if (event.key === 'Enter') {
-            updateCharts();
-        }
-    });
-
-    document.addEventListener("DOMContentLoaded", () => {
-        const savedStocks = getStocksFromCookie();
-        if (savedStocks.length > 0) {
-            document.getElementById('stockInput').value = savedStocks.join(', ');
-            loadCharts(savedStocks);
-        }
-    });
-    // Version: 1.2.2 - Fix company names and pre-market prices1.2.1 - Fix pre-market prices and company names
-    // IMPORTANT: Always increment the version number and update the version name when making changes.
-
-    async function fetchCompanyName(symbol) {
-        try {
-            let response = await fetch(`https://financialmodelingprep.com/api/v3/profile/${symbol}?apikey=${FMP_API_KEY}`);
-            let data = await response.json();
-            if (data && data.length > 0 && data[0].companyName) {
-                return data[0].companyName;
-            }
-        } catch (error) {
-            console.error(`FMP API error for ${symbol}:`, error);
+            return "<span class='change'>N/A</span>";
         }
         
-        try {
-            let response = await fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${symbol}&token=${FINNHUB_API_KEY}`);
-            let data = await response.json();
-            if (data && data.name) {
-                return data.name;
+        async function loadCharts(stocks) {
+            const container = document.getElementById('chartContainer');
+            container.innerHTML = '';
+            
+            for (const stock of stocks) {
+                if (stock.startsWith('*')) {
+                    const header = document.createElement('h2');
+                    header.innerText = stock.substring(1).trim();
+                    container.appendChild(header);
+                    continue;
+                }
+                
+                const companyName = await fetchCompanyName(stock);
+                const preMarketData = await fetchPreMarketData(stock);
+                
+                const title = document.createElement('h3');
+                title.innerText = companyName;
+                container.appendChild(title);
+                
+                const chartContainer = document.createElement('div');
+                chartContainer.className = 'chart-container';
+                
+                const link = document.createElement('a');
+                link.href = `https://finviz.com/quote.ashx?t=${stock}&p=d`;
+                link.target = "_blank";
+                
+                const img = document.createElement('img');
+                img.src = `https://charts2-node.finviz.com/chart.ashx?cs=l&t=${stock}&tf=d&s=linear&ct=candle_stick`;
+                img.alt = `Stock Chart for ${stock}`;
+                img.className = 'chart';
+                
+                link.appendChild(img);
+                chartContainer.appendChild(link);
+                
+                const preMarketElement = document.createElement('div');
+                preMarketElement.innerHTML = preMarketData;
+                chartContainer.appendChild(preMarketElement);
+                
+                container.appendChild(chartContainer);
             }
-        } catch (error) {
-            console.error(`Finnhub API error for ${symbol}:`, error);
         }
-        return symbol;
-    }
-
-    async function fetchPreMarketData(symbol) {
-        try {
-            let response = await fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`);
-            let data = await response.json();
-            if (data && data.dp !== undefined) {
-                let change = data.d;
-                let percentChange = data.dp;
-                let currentPrice = data.c;
-                let changeClass = change >= 0 ? 'green' : 'red';
-                return `<span class='change ${changeClass}'>${currentPrice.toFixed(2)} (${change.toFixed(2)}, ${percentChange.toFixed(2)}%)</span>`;
-            }
-        } catch (error) {
-            console.error(`Pre-market price fetch error for ${symbol}:`, error);
-        }
-        return "<span class='change'>N/A</span>";
-    }
-
-    async function loadCharts(stocks) {
-        const container = document.getElementById('chartContainer');
-        container.innerHTML = '';
         
-        for (const stock of stocks) {
-            if (stock.startsWith('*')) {
-                const header = document.createElement('h2');
-                header.innerText = stock.substring(1).trim();
-                container.appendChild(header);
-                continue;
-            }
-            
-            const companyName = await fetchCompanyName(stock);
-            const preMarketData = await fetchPreMarketData(stock);
-            
-            const title = document.createElement('h3');
-            title.innerText = companyName;
-            container.appendChild(title);
-            
-            const chartContainer = document.createElement('div');
-            chartContainer.style.display = 'flex';
-            chartContainer.style.alignItems = 'center';
-            chartContainer.style.justifyContent = 'space-between';
-            chartContainer.style.width = '60%';
-            
-            const link = document.createElement('a');
-            link.href = `https://finviz.com/quote.ashx?t=${stock}&p=d`;
-            link.target = "_blank";
-            
-            const img = document.createElement('img');
-            img.src = `https://charts2-node.finviz.com/chart.ashx?cs=l&t=${stock}&tf=d&s=linear&ct=candle_stick`;
-            img.alt = `Stock Chart for ${stock}`;
-            img.className = 'chart';
-            
-            link.appendChild(img);
-            chartContainer.appendChild(link);
-            
-            const preMarketElement = document.createElement('div');
-            preMarketElement.innerHTML = preMarketData;
-            chartContainer.appendChild(preMarketElement);
-            
-            container.appendChild(chartContainer);
+        function updateCharts() {
+            const input = document.getElementById('stockInput').value;
+            const stocks = input.split(',').map(s => s.trim().toUpperCase()).filter(s => s);
+            loadCharts(stocks);
         }
-    }
-    // Version: 1.2 - Pre-market prices added
-    // IMPORTANT: Always increment the version number and update the version name when making changes.
-
-    async function fetchPreMarketData(symbol) {
-        try {
-            let response = await fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`);
-            let data = await response.json();
-            if (data && data.dp !== undefined) {
-                let change = data.d;
-                let percentChange = data.dp;
-                let currentPrice = data.c;
-                let changeClass = change >= 0 ? 'green' : 'red';
-                return `<span class='change ${changeClass}'>${currentPrice.toFixed(2)} (${change.toFixed(2)}, ${percentChange.toFixed(2)}%)</span>`;
-            }
-        } catch (error) {
-            console.error(`Pre-market price fetch error for ${symbol}:`, error);
-        }
-        return "<span class='change'>N/A</span>";
-    }
-    // Version: 1.1.1 - Pre-market prices bugfix
-    // IMPORTANT: Always increment the version number and update the version name when making changes.
-    // API keys
-    const FINNHUB_API_KEY = 'cuu664pr01qv6ijm0140cuu664pr01qv6ijm014g';
-    const FMP_API_KEY = 'WDNbcPeFae0D9GaCx4syMsjAt2fKO3Hu';
-
-    function getStocksFromCookie() {
-        const cookies = document.cookie.split(';');
-        for (let cookie of cookies) {
-            let [name, value] = cookie.split('=');
-            if (name.trim() === 'savedStocks') {
-                return value ? value.split(',') : [];
-            }
-        }
-        return [];
-    }
-
-    function setStocksToCookie(stocks) {
-        document.cookie = `savedStocks=${stocks.join(',')};path=/;max-age=${30 * 24 * 60 * 60}`;
-    }
-
-    function updateCharts() {
-        const input = document.getElementById('stockInput').value;
-        const stocks = input.split(',').map(s => s.trim().toUpperCase()).filter(s => s);
-        setStocksToCookie(stocks);
-        loadCharts(stocks);
-    }
-
-    async function loadCharts(stocks) {
-        const container = document.getElementById('chartContainer');
-        container.innerHTML = '';
         
-        for (const stock of stocks) {
-            if (stock.startsWith('*')) {
-                const header = document.createElement('h2');
-                header.innerText = stock.substring(1).trim();
-                container.appendChild(header);
-                continue;
+        document.getElementById('stockInput').addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                updateCharts();
             }
-            
-            const link = document.createElement('a');
-            link.href = `https://finviz.com/quote.ashx?t=${stock}&p=d`;
-            link.target = "_blank";
-            
-            const img = document.createElement('img');
-            img.src = `https://charts2-node.finviz.com/chart.ashx?cs=l&t=${stock}&tf=d&s=linear&ct=candle_stick`;
-            img.alt = `Stock Chart for ${stock}`;
-            img.className = 'chart';
-            
-            link.appendChild(img);
-            container.appendChild(link);
-        }
-    }
-
-    document.getElementById('stockInput').addEventListener('keydown', function(event) {
-        if (event.key === 'Enter') {
-            updateCharts();
-        }
-    });
-
-    document.addEventListener("DOMContentLoaded", () => {
-        const savedStocks = getStocksFromCookie();
-        if (savedStocks.length > 0) {
-            document.getElementById('stockInput').value = savedStocks.join(', ');
-            loadCharts(savedStocks);
-        }
-    });
-</script>
+        });
+        
+        document.addEventListener("DOMContentLoaded", () => {
+            const savedStocks = localStorage.getItem('savedStocks');
+            if (savedStocks) {
+                document.getElementById('stockInput').value = savedStocks;
+                loadCharts(savedStocks.split(','));
+            }
+        });
+    </script>
 </body>
 </html>
