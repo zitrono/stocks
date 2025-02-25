@@ -23,50 +23,38 @@
         const FINNHUB_API_KEY = 'cuu664pr01qv6ijm0140cuu664pr01qv6ijm014g';
         const FMP_API_KEY = 'WDNbcPeFae0D9GaCx4syMsjAt2fKO3Hu';
 
-        // Function to fetch company name from Financial Modeling Prep API
-        async function fetchCompanyNameFromFMP(symbol) {
-            try {
-                const response = await fetch(`https://financialmodelingprep.com/api/v3/profile/${symbol}?apikey=${FMP_API_KEY}`);
-                const data = await response.json();
-                if (data && data.length > 0 && data[0].companyName) {
-                    return data[0].companyName;
+        // Function to set a cookie
+        function setCookie(name, value, days) {
+            const d = new Date();
+            d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+            const expires = "expires=" + d.toUTCString();
+            document.cookie = name + "=" + value + ";" + expires + ";path=/";
+        }
+
+        // Function to get a cookie
+        function getCookie(name) {
+            const cname = name + "=";
+            const decodedCookie = decodeURIComponent(document.cookie);
+            const ca = decodedCookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i].trim();
+                if (c.indexOf(cname) === 0) {
+                    return c.substring(cname.length, c.length);
                 }
-            } catch (error) {
-                console.error(`FMP API error for ${symbol}:`, error);
             }
-            return null;
+            return "";
         }
 
         // Function to fetch company name from Finnhub API
-        async function fetchCompanyNameFromFinnhub(symbol) {
+        async function fetchCompanyName(symbol) {
             try {
                 const response = await fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${symbol}&token=${FINNHUB_API_KEY}`);
                 const data = await response.json();
-                if (data && data.name) {
-                    return data.name;
-                }
+                return data.name || symbol;
             } catch (error) {
-                console.error(`Finnhub API error for ${symbol}:`, error);
+                console.error(`Error fetching data for ${symbol}:`, error);
+                return symbol;
             }
-            return null;
-        }
-
-        // Function to get company name using APIs
-        async function getCompanyName(symbol) {
-            // Try fetching from FMP API
-            let companyName = await fetchCompanyNameFromFMP(symbol);
-            if (companyName) {
-                return companyName;
-            }
-
-            // If FMP API fails, try Finnhub API
-            companyName = await fetchCompanyNameFromFinnhub(symbol);
-            if (companyName) {
-                return companyName;
-            }
-
-            // If all else fails, return the symbol itself
-            return symbol;
         }
 
         // Function to load charts based on stock symbols
@@ -76,13 +64,11 @@
 
             for (const stock of stocks) {
                 if (stock.startsWith('*')) {
-                    // Create a section header
                     const header = document.createElement('h2');
                     header.innerText = stock.substring(1).trim();
                     container.appendChild(header);
                 } else {
-                    // Fetch and display the stock chart
-                    const companyName = await getCompanyName(stock);
+                    const companyName = await fetchCompanyName(stock);
                     const title = document.createElement('h3');
                     title.innerText = companyName;
                     container.appendChild(title);
@@ -92,7 +78,7 @@
                     link.target = "_blank";
 
                     const img = document.createElement('img');
-                    img.src = `https://charts2-node.finviz.com/chart.ashx?cs=l&t=${stock}&tf=d&s=linear&ct=candle_stick`;
+                    img.src = `https://charts2-node.finviz.com/chart.ashx?cs=l&t=${stock}&tf=d&s=linear&ct=candle_stick&o[0][ot]=sma&o[0][op]=20&o[0][oc]=FF8F33C6&o[1][ot]=sma&o[1][op]=50&o[1][oc]=DCB3326D&o[2][ot]=sma&o[2][op]=600&o[2][oc]=DC32B363&o[3][ot]=patterns&o[3][op]=&o[3][oc]=000`;
                     img.alt = `Stock Chart for ${stock}`;
                     img.className = 'chart';
 
@@ -102,28 +88,24 @@
             }
         }
 
-        // Function to update charts based on input
         function updateCharts() {
             const input = document.getElementById('stockInput').value;
             const stocks = input.split(',').map(s => s.trim().toUpperCase()).filter(s => s);
-            if (stocks.length > 0) {
-                loadCharts(stocks);
-            }
+            setCookie('savedStocks', stocks.join(','), 30);
+            loadCharts(stocks);
         }
 
-        // Add event listener to input field for Enter key
         document.getElementById('stockInput').addEventListener('keydown', function(event) {
             if (event.key === 'Enter') {
                 updateCharts();
             }
         });
 
-        // Load charts on page load if stocks are present in the input
-        document.addEventListener("DOMContentLoaded", () => {
-            const input = document.getElementById('stockInput').value;
-            const stocks = input.split(',').map(s => s.trim().toUpperCase()).filter(s => s);
-            if (stocks.length > 0) {
-                loadCharts(stocks);
+        document.addEventListener("DOMContentLoaded", async () => {
+            const savedStocks = getCookie('savedStocks');
+            if (savedStocks) {
+                document.getElementById('stockInput').value = savedStocks;
+                await loadCharts(savedStocks.split(','));
             }
         });
     </script>
