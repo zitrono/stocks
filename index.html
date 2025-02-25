@@ -14,12 +14,31 @@
 </head>
 <body>
     <h1>Stock Chart Viewer</h1>
-    <h2>Version 1.1.1 - Pre-market prices bugfix</h2> <!-- Always increment version number and update version name --> <!-- Always increment version number and update version name -->
+    <h2>Version 1.2 - Pre-market prices added</h2> <!-- Always increment version number and update version name --> <!-- Always increment version number and update version name --> <!-- Always increment version number and update version name -->
     <input type="text" id="stockInput" placeholder="Enter stock symbols (comma separated)">
     <button onclick="updateCharts()">Update Charts</button>
     <div id="chartContainer"></div>
 
     <script>
+        // Version: 1.2 - Pre-market prices added
+        // IMPORTANT: Always increment the version number and update the version name when making changes.
+
+        async function fetchPreMarketData(symbol) {
+            try {
+                let response = await fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`);
+                let data = await response.json();
+                if (data && data.dp !== undefined) {
+                    let change = data.d;
+                    let percentChange = data.dp;
+                    let currentPrice = data.c;
+                    let changeClass = change >= 0 ? 'green' : 'red';
+                    return `<span class='change ${changeClass}'>${currentPrice.toFixed(2)} (${change.toFixed(2)}, ${percentChange.toFixed(2)}%)</span>`;
+                }
+            } catch (error) {
+                console.error(`Pre-market price fetch error for ${symbol}:`, error);
+            }
+            return "<span class='change'>N/A</span>";
+        }
         // Version: 1.1.1 - Pre-market prices bugfix
         // IMPORTANT: Always increment the version number and update the version name when making changes.
         // API keys
