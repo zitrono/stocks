@@ -18,13 +18,13 @@
 </head>
 <body>
     <h1>Stock Chart Viewer</h1>
-    <h2>Version 1.2.6 - Fix duplicate function calls and syntax errors</h2> <!-- Always increment version number and update version name --> <!-- Always increment version number and update version name --> <!-- Always increment version number and update version name --> <!-- Always increment version number and update version name -->
+    <h2>Version 1.2.7 - Fix pre-market data and broken charts</h2> <!-- Always increment version number and update version name --> <!-- Always increment version number and update version name --> <!-- Always increment version number and update version name --> <!-- Always increment version number and update version name --> <!-- Always increment version number and update version name -->
     <input type="text" id="stockInput" placeholder="Enter stock symbols (comma separated)">
     <button onclick="updateCharts()">Update Charts</button>
     <div id="chartContainer"></div>
 
     <script>
-        // Version: 1.2.6 - Fix duplicate function calls and syntax errors1.2.5 - Fix broken charts and pre-market data1.2.4 - Fix pre-market data retrieval1.2.3 - Fix all display issues
+        // Version: 1.2.7 - Fix pre-market data and broken charts1.2.6 - Fix duplicate function calls and syntax errors1.2.5 - Fix broken charts and pre-market data1.2.4 - Fix pre-market data retrieval1.2.3 - Fix all display issues
         // IMPORTANT: Always increment the version number and update the version name when making changes.
         
         const FINNHUB_API_KEY = 'cuu664pr01qv6ijm0140cuu664pr01qv6ijm014g';
@@ -45,7 +45,21 @@
         
         async function fetchPreMarketData(symbol) {
             try {
-                let response = await fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}}`);
+                let response = await fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}
+                let data = await response.json();
+                if (data && data.pre !== undefined && data.pc !== undefined) {
+                    let preMarketPrice = data.pre;
+                    let prevClose = data.pc;
+                    let change = preMarketPrice - prevClose;
+                    let percentChange = ((change / prevClose) * 100).toFixed(2);
+                    let changeClass = change >= 0 ? 'green' : 'red';
+                    return `<span class='change ${changeClass}'>Pre: ${preMarketPrice.toFixed(2)} (${change.toFixed(2)}, ${percentChange}%)</span>`;
+                }
+            } catch (error) {
+                console.error(`Pre-market price fetch error for ${symbol}:`, error);
+            }
+            return "<span class='change'>Pre: N/A</span>";
+        }}`);
                 let data = await response.json();
                 if (data && data.pre !== undefined && data.pc !== undefined) {
                     let preMarketPrice = data.pre;
