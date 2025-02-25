@@ -8,8 +8,10 @@
         body { font-family: Arial, sans-serif; text-align: center; }
         #stockInput { width: 60%; padding: 10px; margin: 10px; }
         button { padding: 10px; cursor: pointer; }
-        #chartContainer { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 20px; }
+        #chartContainer { display: flex; flex-direction: column; align-items: center; gap: 20px; margin-top: 20px; }
         .chart { display: block; cursor: pointer; }
+        .stock-item { display: flex; align-items: center; gap: 20px; }
+        .price-change { font-size: 1.2em; }
     </style>
 </head>
 <body>
@@ -45,29 +47,27 @@
             return "";
         }
 
-        // Function to fetch company name from APIs
-        async function fetchCompanyName(symbol) {
+        // Function to fetch company name and pre-market data from FMP API
+        async function fetchStockData(symbol) {
             try {
-                let response = await fetch(`https://financialmodelingprep.com/api/v3/profile/${symbol}?apikey=${FMP_API_KEY}`);
-                let data = await response.json();
-                if (data && data.length > 0 && data[0].companyName) {
-                    return data[0].companyName;
+                const response = await fetch(`https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${FMP_API_KEY}`);
+                const data = await response.json();
+                if (data && data.length > 0) {
+                    const { name, change, changesPercentage } = data[0];
+                    return {
+                        companyName: name || symbol,
+                        change: change || 0,
+                        changesPercentage: changesPercentage || 0
+                    };
                 }
             } catch (error) {
-                console.error(`FMP API error for ${symbol}:`, error);
+                console.error(`Error fetching data for ${symbol}:`, error);
             }
-            
-            try {
-                let response = await fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${symbol}&token=${FINNHUB_API_KEY}`);
-                let data = await response.json();
-                if (data && data.name) {
-                    return data.name;
-                }
-            } catch (error) {
-                console.error(`Finnhub API error for ${symbol}:`, error);
-            }
-            
-            return symbol; // Default to ticker if APIs fail
+            return {
+                companyName: symbol,
+                change: 0,
+                changesPercentage: 0
+            };
         }
 
         // Function to load charts based on stock symbols
@@ -81,10 +81,14 @@
                     header.innerText = stock.substring(1).trim();
                     container.appendChild(header);
                 } else {
-                    const companyName = await fetchCompanyName(stock);
+                    const { companyName, change, changesPercentage } = await fetchStockData(stock);
+
+                    const stockItem = document.createElement('div');
+                    stockItem.className = 'stock-item';
+
                     const title = document.createElement('h3');
                     title.innerText = companyName;
-                    container.appendChild(title);
+                    stockItem.appendChild(title);
 
                     const link = document.createElement('a');
                     link.href = `https://finviz.com/quote.ashx?t=${stock}&p=d`;
@@ -96,7 +100,15 @@
                     img.className = 'chart';
 
                     link.appendChild(img);
-                    container.appendChild(link);
+                    stockItem.appendChild(link);
+
+                    const priceChange = document.createElement('div');
+                    priceChange.className = 'price-change';
+                    priceChange.style.color = change >= 0 ? 'green' : 'red';
+                    priceChange.innerText = `${change.toFixed(2)} (${changesPercentage.toFixed(2)}%)`;
+                    stockItem.appendChild(priceChange);
+
+                    container.appendChild(stockItem);
                 }
             }
         }
@@ -118,9 +130,6 @@
             const savedStocks = getCookie('savedStocks');
             if (savedStocks) {
                 document.getElementById('stockInput').value = savedStocks;
-                await loadCharts(savedStocks.split(','));
-            }
-        });
-    </script>
-</body>
-</html>
+                await loadCharts(saved
+::contentReference[oaicite:0]{index=0}
+ 
