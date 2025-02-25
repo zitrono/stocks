@@ -68,10 +68,17 @@
             return '';
         }
 
+        function updateCharts() {
+            const input = document.getElementById('stockInput').value;
+            const stocks = input.split(',').map(s => s.trim().toUpperCase()).filter(s => s);
+            setCookie('savedStocks', stocks.join(','), 30);
+            loadCharts(stocks);
+        }
+
         async function loadCharts(stocks) {
             const container = document.getElementById('chartContainer');
             container.innerHTML = '';
-
+            
             for (const stock of stocks) {
                 if (stock.startsWith('*')) {
                     const header = document.createElement('h2');
@@ -87,18 +94,17 @@
                 title.innerText = companyName;
                 container.appendChild(title);
                 
-                const chartContainer = document.createElement('div');
-                chartContainer.className = 'chart-container';
-                
                 const link = document.createElement('a');
                 link.href = `https://finviz.com/quote.ashx?t=${stock}&p=d`;
                 link.target = "_blank";
                 
                 const img = document.createElement('img');
-                img.src = `https://charts2-node.finviz.com/chart.ashx?cs=l&t=${stock}&tf=d&s=linear&ct=candle_stick&o[0][ot]=sma&o[0][op]=20&o[0][oc]=FF8F33C6&o[1][ot]=sma&o[1][op]=50&o[1][oc]=DCB3326D&o[2][ot]=sma&o[2][op]=600&o[2][oc]=DC32B363&o[3][ot]=patterns&o[3][op]=&o[3][oc]=000`;
+                img.src = `https://charts2-node.finviz.com/chart.ashx?cs=l&t=${stock}&tf=d&s=linear&ct=candle_stick`;
                 img.alt = `Stock Chart for ${stock}`;
                 img.className = 'chart';
                 
+                const chartContainer = document.createElement('div');
+                chartContainer.className = 'chart-container';
                 link.appendChild(img);
                 chartContainer.appendChild(link);
                 
@@ -108,13 +114,6 @@
                 
                 container.appendChild(chartContainer);
             }
-        }
-
-        function updateCharts() {
-            const input = document.getElementById('stockInput').value;
-            const stocks = input.split(',').map(s => s.trim().toUpperCase()).filter(s => s);
-            setCookie('savedStocks', stocks.join(','), 30);
-            loadCharts(stocks);
         }
 
         document.getElementById('stockInput').addEventListener('keydown', function(event) {
