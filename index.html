@@ -15,111 +15,97 @@
         .green { color: green; }
         .red { color: red; }
     </style>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 </head>
 <body>
     <h1>Stock Chart Viewer</h1>
-    <h2>Version 1.2.3 - Fix all display issues</h2> <!-- Always increment version number and update version name -->
+    <h2>Version 1.3 -Firebase</h2>
     <input type="text" id="stockInput" placeholder="Enter stock symbols (comma separated)">
     <button onclick="updateCharts()">Update Charts</button>
     <div id="chartContainer"></div>
 
     <script>
-        // Version: 1.2.3 - Fix all display issues
-        // IMPORTANT: Always increment the version number and update the version name when making changes.
-        
-        const FINNHUB_API_KEY = 'cuu664pr01qv6ijm0140cuu664pr01qv6ijm014g';
-        const FMP_API_KEY = 'WDNbcPeFae0D9GaCx4syMsjAt2fKO3Hu';
-        
+        const firebaseConfig = {
+            apiKey: "AIzaSyDxLAz4js-Ga8otOmW6Dd1uclDZd2_Z0Xs",
+            authDomain: "stocks-1db2c.firebaseapp.com",
+            databaseURL: "https://stocks-1db2c-default-rtdb.europe-west1.firebasedatabase.app/",
+            projectId: "stocks-1db2c",
+            storageBucket: "stocks-1db2c.appspot.com",
+            messagingSenderId: "714617456475",
+            appId: "1:714617456475:web:e63c98ebf91f11ffab7c7e",
+            measurementId: "G-Y06N1B7CZP"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const dbRef = firebase.database().ref('sessionData');
+
+        function saveSessionData(data) {
+            dbRef.set({ stocks: data });
+        }
+
+        function loadSessionData(callback) {
+            dbRef.once('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data && data.stocks) {
+                    callback(data.stocks);
+                }
+            });
+        }
+
         async function fetchCompanyName(symbol) {
-            try {
-                let response = await fetch(`https://financialmodelingprep.com/api/v3/profile/${symbol}?apikey=${FMP_API_KEY}`);
-                let data = await response.json();
-                if (data && data.length > 0 && data[0].companyName) {
-                    return data[0].companyName;
-                }
-            } catch (error) {
-                console.error(`FMP API error for ${symbol}:`, error);
-            }
-            return symbol;
+            let response = await fetch(`https://financialmodelingprep.com/api/v3/profile/${symbol}?apikey=WDNbcPeFae0D9GaCx4syMsjAt2fKO3Hu`);
+            let data = await response.json();
+            return data.length > 0 ? data[0].companyName : symbol;
         }
-        
+
         async function fetchPreMarketData(symbol) {
-            try {
-                let response = await fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`);
-                let data = await response.json();
-                if (data && data.dp !== undefined) {
-                    let change = data.d;
-                    let percentChange = data.dp;
-                    let currentPrice = data.c;
-                    let changeClass = change >= 0 ? 'green' : 'red';
-                    return `<span class='change ${changeClass}'>${currentPrice.toFixed(2)} (${change.toFixed(2)}, ${percentChange.toFixed(2)}%)</span>`;
-                }
-            } catch (error) {
-                console.error(`Pre-market price fetch error for ${symbol}:`, error);
-            }
-            return "<span class='change'>N/A</span>";
+            let response = await fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=cuu664pr01qv6ijm0140cuu664pr01qv6ijm014g`);
+            let data = await response.json();
+            let changeClass = data.d >= 0 ? 'green' : 'red';
+            return `<span class='change ${changeClass}'>${data.c.toFixed(2)} (${data.d.toFixed(2)}, ${data.dp.toFixed(2)}%)</span>`;
         }
-        
+
         async function loadCharts(stocks) {
             const container = document.getElementById('chartContainer');
             container.innerHTML = '';
-            
             for (const stock of stocks) {
-                if (stock.startsWith('*')) {
-                    const header = document.createElement('h2');
-                    header.innerText = stock.substring(1).trim();
-                    container.appendChild(header);
-                    continue;
-                }
-                
                 const companyName = await fetchCompanyName(stock);
                 const preMarketData = await fetchPreMarketData(stock);
-                
                 const title = document.createElement('h3');
                 title.innerText = companyName;
                 container.appendChild(title);
-                
                 const chartContainer = document.createElement('div');
                 chartContainer.className = 'chart-container';
-                
                 const link = document.createElement('a');
                 link.href = `https://finviz.com/quote.ashx?t=${stock}&p=d`;
                 link.target = "_blank";
-                
                 const img = document.createElement('img');
                 img.src = `https://charts2-node.finviz.com/chart.ashx?cs=l&t=${stock}&tf=d&s=linear&ct=candle_stick`;
-                img.alt = `Stock Chart for ${stock}`;
                 img.className = 'chart';
-                
                 link.appendChild(img);
                 chartContainer.appendChild(link);
-                
                 const preMarketElement = document.createElement('div');
                 preMarketElement.innerHTML = preMarketData;
                 chartContainer.appendChild(preMarketElement);
-                
                 container.appendChild(chartContainer);
             }
         }
-        
+
         function updateCharts() {
             const input = document.getElementById('stockInput').value;
             const stocks = input.split(',').map(s => s.trim().toUpperCase()).filter(s => s);
+            saveSessionData(stocks);
             loadCharts(stocks);
         }
-        
-        document.getElementById('stockInput').addEventListener('keydown', function(event) {
-            if (event.key === 'Enter') {
-                updateCharts();
-            }
-        });
-        
+
         document.addEventListener("DOMContentLoaded", () => {
-            const savedStocks = localStorage.getItem('savedStocks');
-            if (savedStocks) {
-                document.getElementById('stockInput').value = savedStocks;
-                loadCharts(savedStocks.split(','));
-            }
+            loadSessionData((savedStocks) => {
+                document.getElementById('stockInput').value = savedStocks.join(', ');
+                loadCharts(savedStocks);
+            });
         });
     </script>
 </body>
