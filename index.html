@@ -11,9 +11,6 @@
         #chartContainer { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 20px; }
         .chart-container { display: flex; align-items: center; justify-content: space-between; width: 60%; }
         .chart { display: block; cursor: pointer; }
-        .change { font-size: 1.2em; font-weight: bold; margin-left: 10px; }
-        .green { color: green; }
-        .red { color: red; }
         .section-title { font-size: 1.5em; font-weight: bold; margin-top: 20px; }
     </style>
     <!-- Firebase SDK -->
@@ -62,13 +59,6 @@
             return data.length > 0 ? data[0].companyName : symbol;
         }
 
-        async function fetchPreMarketData(symbol) {
-            let response = await fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=cuu664pr01qv6ijm0140cuu664pr01qv6ijm014g`);
-            let data = await response.json();
-            let changeClass = data.d >= 0 ? 'green' : 'red';
-            return `<span class='change ${changeClass}'>${data.c.toFixed(2)} (${data.d.toFixed(2)}, ${data.dp.toFixed(2)}%)</span>`;
-        }
-
         async function loadCharts(entries) {
             const container = document.getElementById('chartContainer');
             container.innerHTML = '';
@@ -80,7 +70,6 @@
                     container.appendChild(sectionTitle);
                 } else {
                     const companyName = await fetchCompanyName(entry);
-                    const preMarketData = await fetchPreMarketData(entry);
                     const title = document.createElement('h3');
                     title.innerText = companyName;
                     container.appendChild(title);
@@ -94,9 +83,6 @@
                     img.className = 'chart';
                     link.appendChild(img);
                     chartContainer.appendChild(link);
-                    const preMarketElement = document.createElement('div');
-                    preMarketElement.innerHTML = preMarketData;
-                    chartContainer.appendChild(preMarketElement);
                     container.appendChild(chartContainer);
                 }
             }
